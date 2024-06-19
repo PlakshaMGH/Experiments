@@ -4,7 +4,6 @@ from dataset import BinaryInstrumentDataset
 import configs as configs
 import utils
 from XMem.model.trainer import XMemTrainer
-import os
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -58,7 +57,7 @@ for epoch in pbar:
         data["first_frame_gt"] = data["first_frame_gt"].cuda()
         data["cls_gt"] = data["cls_gt"].cuda()
         data["selector"] = data["selector"].cuda()
-        loss = model.do_pass(data, epoch)
+        loss = model.do_pass(data, 50 + epoch)
         pbar.set_postfix(loss=loss)
 
     if epoch % 100 == 0:
