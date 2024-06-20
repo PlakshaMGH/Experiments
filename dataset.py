@@ -74,10 +74,10 @@ class BinaryInstrumentDataset(Dataset):
                     scale=(0.9, 1.1),
                     shear=10,
                     interpolation=InterpolationMode.BICUBIC,
-                    fill=im_mean,
+                    fill=im_mean,  # type: ignore
                 ),
                 transforms.Resize(384, InterpolationMode.BICUBIC),
-                transforms.RandomCrop((384, 384), pad_if_needed=True, fill=im_mean),
+                transforms.RandomCrop((384, 384), pad_if_needed=True, fill=im_mean),  # type: ignore
             ]
         )
 
@@ -105,7 +105,7 @@ class BinaryInstrumentDataset(Dataset):
 
         self.all_im_dual_transform = transforms.Compose(
             [
-                transforms.RandomAffine(degrees=0, scale=(0.8, 1.5), fill=im_mean),
+                transforms.RandomAffine(degrees=0, scale=(0.8, 1.5), fill=im_mean),  # type: ignore
                 transforms.RandomHorizontalFlip(),
             ]
         )
