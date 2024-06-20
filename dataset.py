@@ -1,10 +1,18 @@
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 import os
 import numpy as np
 import utils
 from PIL import Image
+
+
+im_mean = (124, 116, 104)
+
+im_normalization = transforms.Normalize(
+    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+)
 
 
 class BinaryInstrumentDataset(Dataset):
@@ -50,16 +58,77 @@ class BinaryInstrumentDataset(Dataset):
             f"{len(self.videos)} out of {len(vid_list)} videos accepted in {im_root}."
         )
 
-        # transform to resize and normalise the image
-        self.preprocess = transforms.Compose(
+        # These set of transform is the same for im/gt pairs, but different among the 3 sampled frames
+        self.pair_im_lone_transform = transforms.Compose(
             [
-                transforms.Resize(size=(384, 384)),
-                transforms.ToTensor(),
+                transforms.ColorJitter(
+                    0.1, 0.05, 0.05, 0
+                ),  # No hue change here as that's not realistic
             ]
         )
 
-        self.normalise = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        self.pair_im_dual_transform = transforms.Compose(
+            [
+                transforms.RandomAffine(
+                    degrees=20,
+                    scale=(0.9, 1.1),
+                    shear=10,
+                    interpolation=InterpolationMode.BICUBIC,
+                    fill=im_mean,
+                ),
+                transforms.Resize(384, InterpolationMode.BICUBIC),
+                transforms.RandomCrop((384, 384), pad_if_needed=True, fill=im_mean),
+            ]
+        )
+
+        self.pair_gt_dual_transform = transforms.Compose(
+            [
+                transforms.RandomAffine(
+                    degrees=20,
+                    scale=(0.9, 1.1),
+                    shear=10,
+                    interpolation=InterpolationMode.BICUBIC,
+                    fill=0,
+                ),
+                transforms.Resize(384, InterpolationMode.NEAREST),
+                transforms.RandomCrop((384, 384), pad_if_needed=True, fill=0),
+            ]
+        )
+
+        # These transform are the same for all pairs in the sampled sequence
+        self.all_im_lone_transform = transforms.Compose(
+            [
+                transforms.ColorJitter(0.1, 0.05, 0.05, 0.05),
+                transforms.RandomGrayscale(0.05),
+            ]
+        )
+
+        self.all_im_dual_transform = transforms.Compose(
+            [
+                transforms.RandomAffine(degrees=0, scale=(0.8, 1.5), fill=im_mean),
+                transforms.RandomHorizontalFlip(),
+            ]
+        )
+
+        self.all_gt_dual_transform = transforms.Compose(
+            [
+                transforms.RandomAffine(degrees=0, scale=(0.8, 1.5), fill=0),
+                transforms.RandomHorizontalFlip(),
+            ]
+        )
+
+        # Final transform without randomness
+        self.final_im_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                im_normalization,
+            ]
+        )
+
+        self.final_gt_transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+            ]
         )
 
     def __getitem__(self, idx):
@@ -117,11 +186,20 @@ class BinaryInstrumentDataset(Dataset):
 
                 utils.reseed(sequence_seed)
                 this_im = Image.open(os.path.join(vid_im_path, jpg_name)).convert("RGB")
-                this_im = self.preprocess(this_im)
-                this_im = self.normalise(this_im)
-
+                this_im = self.all_im_dual_transform(this_im)
+                this_im = self.all_im_lone_transform(this_im)
+                utils.reseed(sequence_seed)
                 this_gt = Image.open(os.path.join(vid_gt_path, png_name)).convert("P")
-                this_gt = self.preprocess(this_gt)
+                this_gt = self.all_gt_dual_transform(this_gt)
+
+                pairwise_seed = np.random.randint(2147483647)
+                utils.reseed(pairwise_seed)
+                this_im = self.pair_im_dual_transform(this_im)
+                this_im = self.pair_im_lone_transform(this_im)
+                utils.reseed(pairwise_seed)
+                this_gt = self.pair_gt_dual_transform(this_gt)
+
+                this_im = self.final_im_transform(this_im)
                 this_gt = np.array(this_gt)
 
                 images.append(this_im)
