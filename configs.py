@@ -1,4 +1,3 @@
-import os
 import datetime
 from XMem.util.logger import TensorboardLogger
 
@@ -51,7 +50,7 @@ config = {
     "max_skip_value": 20,
 }
 
-config["num_workers"] = os.cpu_count()
+config["num_workers"] = 4
 
 config["deep_update_prob"] = raw_config["deep_update_prob"]
 config["weight_decay"] = raw_config["weight_decay"]
