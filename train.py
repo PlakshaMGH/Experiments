@@ -57,8 +57,10 @@ for epoch in pbar:
         data["first_frame_gt"] = data["first_frame_gt"].cuda()
         data["cls_gt"] = data["cls_gt"].cuda()
         data["selector"] = data["selector"].cuda()
-        loss = model.do_pass(data, 50 + epoch)
+        loss = model.do_pass(data, epoch)
         pbar.set_postfix(loss=loss)
 
     if epoch % 100 == 0:
         model.save_network(epoch)
+
+model.save_network(total_epochs)
