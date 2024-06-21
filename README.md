@@ -6,4 +6,4 @@ Repo for running different augmentation experiments with XMem on the Endovis17 D
 
 ### No Augmentation
 
-No transforms were applied to input or ground truth images expect for resizing them to 384x384.
+No transforms were applied to input or ground truth images except for resizing them to 384x384.
